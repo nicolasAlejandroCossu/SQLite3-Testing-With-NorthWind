@@ -29,11 +29,12 @@ def GetTopRevenueEmployees():
         
         print(result)
 
-        result.plot(x="FullName", y="TotalRevenue", figsize=(8,5), kind="bar", legend=False, color=COLORS)
-        plt.title = "Top Efficent Employees (Based on revenue by employee)"
-        plt.xlabel = "Employees"
-        plt.ylabel = "Revenue"
+        result.plot(x="FullName", y="TotalRevenue", figsize=(10,7), kind="bar", legend=False, color=COLORS)
+        plt.title("Top Employees by Revenue)")
+        plt.xlabel("Employees")
+        plt.ylabel("Revenue")
         plt.xticks(rotation=45)
+        plt.tight_layout()
         plt.show()
 
 def GetTopRevenueProducts():
@@ -42,11 +43,10 @@ def GetTopRevenueProducts():
                         SELECT 	ProductName,
                                 SUM(Quantity) as QuantitySold, 
                                 Price as UnitPrice,
-                                SUM(Quantity) * Price as TotalRevenue
+                                SUM(Quantity * Price) as TotalRevenue
                         FROM Products
 
-                        INNER JOIN OrderDetails ON
-                                Products.ProductID = OrderDetails.ProductID
+                        INNER JOIN OrderDetails ON Products.ProductID = OrderDetails.ProductID
 
                         GROUP BY Products.ProductID
 
@@ -58,26 +58,28 @@ def GetTopRevenueProducts():
         
         print(result)
 
-        result.plot(x="ProductName", y="TotalRevenue", figsize= (10,5), kind="bar", legend=False, color=COLORS)
-        plt.title = "Top profitable products (Based on revenue by product)"
-        plt.xlabel = "Product Name"
-        plt.ylabel = "Revenue"
+        result.plot(x="ProductName", y="TotalRevenue", figsize= (10,7), kind="bar", legend=False, color=COLORS)
+        plt.title("Top profitable products (Based on revenue by product)")
+        plt.xlabel("Product Name")
+        plt.ylabel("Revenue")
         plt.xticks(rotation=45)
+        plt.tight_layout()
         plt.show()
 
 def GetRevenueClassifiedBycategories():
         with sqlite3.connect(DATABASEPATH) as connection:
                 query = ('''
-                        SELECT 	CategoryName,
-                                SUM(Quantity) as QuantitySold,
-                                SUM(Quantity) * Price as TotalRevenue
-                        FROM Categories
-                        INNER JOIN Products, OrderDetails ON 
-                                OrderDetails.ProductID = Products.ProductID AND
-                                Categories.CategoryID = Products.ProductID
-                        GROUP BY Categories.CategoryID
+                        SELECT 	Categories.CategoryName,
+                                SUM(OrderDetails.Quantity) as TotalQuantity,
+                                SUM(OrderDetails.Quantity * Price) as TotalRevenue
+                        FROM Products
+                         
+                        INNER JOIN OrderDetails ON OrderDetails.ProductID = Products.ProductID
+                        INNER JOIN Categories ON Categories.CategoryID = Products.CategoryID
+                         
+                        GROUP BY Products.CategoryID
                         ORDER BY TotalRevenue DESC
-                        LIMIT 5 
+                        LIMIT 5
                         ''')
 
                 result = pd.read_sql_query(query, connection)
@@ -96,10 +98,15 @@ def GetRevenueClassifiedBycategories():
                 sizes.append(size)
 
         explode = (0.1, 0, 0, 0, 0)
+        
+        def FormatLabel(percentage):
+                revenue = int(percentage / 100 * total_revenue)
+                return f"{percentage:.1f}%\n(${revenue:,})"
 
         plt.figure(figsize= (8,8))
-        plt.pie(sizes, labels=labels, colors=COLORS, explode=explode, autopct='%1.1f%%', startangle=140, shadow=True)
-        plt.title = "Top profitable products (Based on revenue by product)"
+        plt.pie(sizes, labels=labels, colors=COLORS, explode=explode, autopct=lambda percentage: FormatLabel(percentage), startangle=140, shadow=True)
+        plt.title("Top profitable products (Based on revenue by product)")
+        plt.tight_layout()
         plt.show()
 
 def main():
